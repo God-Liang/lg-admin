@@ -12,7 +12,7 @@
 
 ### 运行步骤
 
-1. 拉取代码 `git clone 'http://gitlab.enjoybuy.vip/frontend/agent_admin.git'`
+1. 拉取代码 `git clone 'https://github.com/God-Liang/lg-admin.git'`
 2. 安装依赖 `npm install`
 3. 运行项目 `npm run serve`
 4. 打包项目
