@@ -30,7 +30,7 @@ if (process.env.NODE_ENV === 'production') {
     integrations: [new VueIntegration({ Vue, attachProps: true })],
     logErrors: true,
     release: '0.0.1@' + moment().format('YYYY-MM-DD HH:mm'),
-    environment: process.env.VUE_APP_MODE,
+    environment: process.env.VUE_APP_MODE
   })
 }
 
