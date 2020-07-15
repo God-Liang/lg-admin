@@ -1,97 +1,127 @@
-import { login, logout, getInfo } from '@/api/user'
-import { getToken, setToken, removeToken } from '@/utils/auth'
-import { resetRouter } from '@/router'
-
-const getDefaultState = () => {
-  return {
-    token: getToken(),
+import storage from 'store'
+import { login, getInfo, getRoute, logout } from '@/api/login'
+import { ACCESS_TOKEN } from '@/store/mutation-types'
+const user = {
+  state: {
+    token: '',
     name: '',
-    avatar: ''
+    avatar: '',
+    roles: [],
+    info: {}
+  },
+
+  mutations: {
+    SET_TOKEN: (state, token) => {
+      state.token = token
+    },
+    SET_NAME: (state, { name }) => {
+      state.name = name
+    },
+    SET_AVATAR: (state, avatar) => {
+      state.avatar = avatar
+    },
+    SET_ROLES: (state, roles) => {
+      state.roles = roles
+    },
+    SET_INFO: (state, info) => {
+      state.info = info
+    }
+  },
+
+  actions: {
+    // 登录
+    Login({ commit }, userInfo) {
+      return new Promise((resolve, reject) => {
+        login(userInfo)
+          .then(response => {
+            const result = response.data
+            storage.set(ACCESS_TOKEN, result.token, 7 * 24 * 60 * 60 * 1000)
+            commit('SET_TOKEN', result.token)
+            resolve()
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+
+    // 获取用户信息
+    GetInfo({ commit }) {
+      return new Promise((resolve, reject) => {
+        getInfo()
+          .then(response => {
+            const data = response.data
+            if (!data) {
+              reject(new Error('暂无该用户～'))
+            }
+            commit('SET_NAME', { name: data.name })
+            commit('SET_AVATAR', data.avatar)
+            commit('SET_INFO', data)
+            if (process.env.VUE_APP_PERMISSION_ASYNC === '1') {
+              getRoute().then(res => {
+                const permissionRouter = res.data
+                if (!permissionRouter || permissionRouter.length <= 0) {
+                  reject(new Error('暂无权限，请联系相关人员～'))
+                }
+                data.permissions = permissionRouter
+                const permissionList = []
+                permissionRouter.map(permission => {
+                  permissionList.push(permission.name)
+                  if (permission.child && permission.child.length > 0) {
+                    permission.child.map(e => {
+                      permissionList.push(e.name)
+                    })
+                  }
+                })
+                data.permissionList = permissionList
+                commit('SET_ROLES', permissionRouter)
+                resolve(data)
+              })
+            } else {
+              resolve(data)
+            }
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+
+    GetInfoNull({ commit }) {
+      return new Promise((resolve, reject) => {
+        getInfo()
+          .then(response => {
+            const data = response.data
+            if (!data) {
+              reject(new Error('暂无该用户～'))
+            }
+            commit('SET_NAME', { name: data.name })
+            commit('SET_AVATAR', data.avatar)
+            commit('SET_INFO', data)
+          })
+          .catch(error => {
+            reject(error)
+          })
+      })
+    },
+    // 登出
+    Logout({ commit, state }) {
+      return new Promise(resolve => {
+        logout(state.token)
+          .then(() => {
+            resolve()
+          })
+          .catch(() => {
+            resolve()
+          })
+          .finally(() => {
+            commit('SET_TOKEN', '')
+            commit('SET_ROLES', [])
+            storage.remove(ACCESS_TOKEN)
+          })
+      })
+    }
   }
 }
 
-const state = getDefaultState()
-
-const mutations = {
-  RESET_STATE: (state) => {
-    Object.assign(state, getDefaultState())
-  },
-  SET_TOKEN: (state, token) => {
-    state.token = token
-  },
-  SET_NAME: (state, name) => {
-    state.name = name
-  },
-  SET_AVATAR: (state, avatar) => {
-    state.avatar = avatar
-  }
-}
-
-const actions = {
-  // user login
-  login({ commit }, userInfo) {
-    const { username, password } = userInfo
-    return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
-        const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
-        resolve()
-      }).catch(error => {
-        reject(error)
-      })
-    })
-  },
-
-  // get user info
-  getInfo({ commit, state }) {
-    return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
-        const { data } = response
-
-        if (!data) {
-          reject('Verification failed, please Login again.')
-        }
-
-        const { name, avatar } = data
-
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
-        resolve(data)
-      }).catch(error => {
-        reject(error)
-      })
-    })
-  },
-
-  // user logout
-  logout({ commit, state }) {
-    return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
-        removeToken() // must remove  token  first
-        resetRouter()
-        commit('RESET_STATE')
-        resolve()
-      }).catch(error => {
-        reject(error)
-      })
-    })
-  },
-
-  // remove token
-  resetToken({ commit }) {
-    return new Promise(resolve => {
-      removeToken() // must remove  token  first
-      commit('RESET_STATE')
-      resolve()
-    })
-  }
-}
-
-export default {
-  namespaced: true,
-  state,
-  mutations,
-  actions
-}
-
+export default user

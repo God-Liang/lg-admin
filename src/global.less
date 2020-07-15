@@ -1,0 +1,170 @@
+@import '~ant-design-vue/es/style/themes/default.less';
+
+html,
+body,
+#app,
+#root {
+  height: 100%;
+}
+
+.colorWeak {
+  filter: invert(80%);
+}
+
+.ant-layout.layout-basic {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+canvas {
+  display: block;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// 数据列表 样式
+.table-alert {
+  margin-bottom: 16px;
+}
+// 数据列表 操作
+.table-operator {
+  margin-bottom: 18px;
+
+  button {
+    margin-right: 8px;
+  }
+}
+// 数据列表 搜索条件
+.table-page-search-wrapper {
+  .ant-form-inline {
+    .ant-form-item {
+      display: flex;
+      margin-bottom: 24px;
+      margin-right: 0;
+
+      .ant-form-item-control-wrapper {
+        flex: 1 1;
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      > .ant-form-item-label {
+        line-height: 32px;
+        padding-right: 8px;
+        width: auto;
+      }
+      .ant-form-item-control {
+        height: 32px;
+        line-height: 32px;
+      }
+    }
+  }
+
+  .table-page-search-submitButtons {
+    display: block;
+    margin-bottom: 24px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: @screen-xs) {
+  .ant-table {
+    width: 100%;
+    overflow-x: auto;
+    &-thead > tr,
+    &-tbody > tr {
+      > th,
+      > td {
+        white-space: pre;
+        > span {
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+// container
+.ant-pro-basicLayout-children-content-wrap {
+  margin: 0;
+}
+.ant-pro-basicLayout-content {
+  margin: 0;
+  height: 100%;
+  .ant-pro-page-header-wrap {
+    margin: 0;
+  }
+  .ant-pro-page-header-wrap-children-content {
+    margin: 0;
+  }
+}
+.lg-container {
+  // height: 100%;
+  height: calc(100vh - 64px);
+  width: 100%;
+  padding: 20px;
+  background-color: #f0f2f5;
+  box-sizing: border-box;
+  .lg-container-white {
+    height: 100%;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 4px;
+    overflow: auto;
+    padding: 20px;
+  }
+}
+// 隐藏底部
+footer {
+  display: none !important;
+}
+// 过滤条件
+.filter-container {
+  margin-bottom: 20px;
+  .filter-item {
+    width: 200px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+  }
+  .ant-btn + .ant-btn {
+    margin-left: 20px;
+    margin-bottom: 20px;
+  }
+}
+// 保存按钮
+.btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  .ml20 {
+    margin-left: 20px;
+  }
+}
+.w200 {
+  width: 200px !important;
+}
+.w220 {
+  width: 220px !important;
+}
+.w240 {
+  width: 240px !important;
+}
+.w260 {
+  width: 260px !important;
+}
+.w280 {
+  width: 280px !important;
+}
+.w300 {
+  width: 300px !important;
+}

@@ -1,237 +1,140 @@
-<template>
-  <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
-
-      <div class="title-container">
-        <h3 class="title">Login Form</h3>
-      </div>
-
-      <el-form-item prop="username">
-        <span class="svg-container">
-          <svg-icon icon-class="user" />
-        </span>
-        <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
+<template lang="pug">
+  .main
+    a-form.user-layout-login(id="formLogin"
+      ref="formLogin"
+      :form="form"
+      @submit="handleSubmit")
+      a-form-item
+        a-input(size="large"
           type="text"
-          tabindex="1"
-          auto-complete="on"
-        />
-      </el-form-item>
-
-      <el-form-item prop="password">
-        <span class="svg-container">
-          <svg-icon icon-class="password" />
-        </span>
-        <el-input
-          :key="passwordType"
-          ref="password"
-          v-model="loginForm.password"
-          :type="passwordType"
-          placeholder="Password"
-          name="password"
-          tabindex="2"
-          auto-complete="on"
-          @keyup.enter.native="handleLogin"
-        />
-        <span class="show-pwd" @click="showPwd">
-          <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
-        </span>
-      </el-form-item>
-
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
-
-      <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: 111111</span>
-      </div>
-
-    </el-form>
+          placeholder="请输入账号"
+          v-decorator="['account', {rules: [{ required: true, message: '请输入账号' }], validateTrigger: 'blur'}]")
+          a-icon(slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }")
+      a-form-item
+        a-input-password(size="large"
+          placeholder="请输入密码"
+          v-decorator="['password', {rules: [{ required: true, message: '请输入密码' }, { min: 6, message: '密码不少于六个字符' }], validateTrigger: 'blur'}]")
+          a-icon(slot="prefix" type="lock" :style="{ color: 'rgba(0,0,0,.25)' }")
+      a-form-item
+        a-button(size="large"
+          type="primary"
+          htmlType="submit"
+          class="login-button"
+          :loading="state.loginBtn"
+          :disabled="state.loginBtn") 登录
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
-
+import { mapActions } from 'vuex'
+import { getRandomNum } from '@/utils/util'
+import qs from 'qs'
+import md5 from 'md5'
 export default {
-  name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
     return {
-      loginForm: {
-        username: 'admin',
-        password: '111111'
-      },
-      loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
-      },
-      loading: false,
-      passwordType: 'password',
-      redirect: undefined
-    }
-  },
-  watch: {
-    $route: {
-      handler: function(route) {
-        this.redirect = route.query && route.query.redirect
-      },
-      immediate: true
+      loginBtn: false,
+      form: this.$form.createForm(this),
+      state: {
+        time: 60,
+        loginBtn: false
+      }
     }
   },
   methods: {
-    showPwd() {
-      if (this.passwordType === 'password') {
-        this.passwordType = ''
-      } else {
-        this.passwordType = 'password'
-      }
-      this.$nextTick(() => {
-        this.$refs.password.focus()
-      })
-    },
-    handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
+    ...mapActions(['Login', 'Logout']),
+    // 登录提交
+    handleSubmit(e) {
+      e.preventDefault()
+      const {
+        form: { validateFields },
+        state,
+        Login
+      } = this
+
+      state.loginBtn = true
+
+      const validateFieldsKey = ['account', 'password']
+
+      validateFields(validateFieldsKey, { force: true }, (err, values) => {
+        if (!err) {
+          const randomNum = getRandomNum(4)
+          const loginParams = { ...values }
+          loginParams.password = randomNum[0] + randomNum[1] + md5(loginParams.password) + randomNum[2] + randomNum[3]
+          Login(qs.stringify(loginParams))
+            // Login(loginParams)
+            .then(res => this.loginSuccess(res))
+            .finally(() => {
+              setTimeout(() => {
+                state.loginBtn = false
+              }, 200)
+            })
         } else {
-          console.log('error submit!!')
-          return false
+          setTimeout(() => {
+            state.loginBtn = false
+          }, 200)
         }
       })
+    },
+    // 登录成功跳转首页
+    loginSuccess(res) {
+      this.$router.push({ path: '/' })
+      // 延迟 1 秒显示欢迎信息
+      setTimeout(() => {
+        this.$notification.success({
+          message: '成功',
+          description: '登录成功'
+        })
+      }, 200)
     }
   }
 }
 </script>
 
-<style lang="scss">
-/* 修复input 背景不协调 和光标变色 */
-/* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
-
-$bg:#283443;
-$light_gray:#fff;
-$cursor: #fff;
-
-@supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
-  .login-container .el-input input {
-    color: $cursor;
-  }
-}
-
-/* reset element-ui css */
-.login-container {
-  .el-input {
-    display: inline-block;
-    height: 47px;
-    width: 85%;
-
-    input {
-      background: transparent;
-      border: 0px;
-      -webkit-appearance: none;
-      border-radius: 0px;
-      padding: 12px 5px 12px 15px;
-      color: $light_gray;
-      height: 47px;
-      caret-color: $cursor;
-
-      &:-webkit-autofill {
-        box-shadow: 0 0 0px 1000px $bg inset !important;
-        -webkit-text-fill-color: $cursor !important;
-      }
-    }
-  }
-
-  .el-form-item {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-    color: #454545;
-  }
-}
-</style>
-
-<style lang="scss" scoped>
-$bg:#2d3a4b;
-$dark_gray:#889aa4;
-$light_gray:#eee;
-
-.login-container {
-  min-height: 100%;
-  width: 100%;
-  background-color: $bg;
-  overflow: hidden;
-
-  .login-form {
-    position: relative;
-    width: 520px;
-    max-width: 100%;
-    padding: 160px 35px 0;
-    margin: 0 auto;
-    overflow: hidden;
-  }
-
-  .tips {
+<style lang="less" scoped>
+.user-layout-login {
+  label {
     font-size: 14px;
-    color: #fff;
-    margin-bottom: 10px;
+  }
 
-    span {
-      &:first-of-type {
-        margin-right: 16px;
+  .getCaptcha {
+    display: block;
+    width: 100%;
+    height: 40px;
+  }
+
+  .forge-password {
+    font-size: 14px;
+  }
+
+  button.login-button {
+    padding: 0 15px;
+    font-size: 16px;
+    height: 40px;
+    width: 100%;
+  }
+
+  .user-login-other {
+    text-align: left;
+    margin-top: 24px;
+    line-height: 22px;
+
+    .item-icon {
+      font-size: 24px;
+      color: rgba(0, 0, 0, 0.2);
+      margin-left: 16px;
+      vertical-align: middle;
+      cursor: pointer;
+      transition: color 0.3s;
+
+      &:hover {
+        color: #1890ff;
       }
     }
-  }
 
-  .svg-container {
-    padding: 6px 5px 6px 15px;
-    color: $dark_gray;
-    vertical-align: middle;
-    width: 30px;
-    display: inline-block;
-  }
-
-  .title-container {
-    position: relative;
-
-    .title {
-      font-size: 26px;
-      color: $light_gray;
-      margin: 0px auto 40px auto;
-      text-align: center;
-      font-weight: bold;
+    .register {
+      float: right;
     }
-  }
-
-  .show-pwd {
-    position: absolute;
-    right: 10px;
-    top: 7px;
-    font-size: 16px;
-    color: $dark_gray;
-    cursor: pointer;
-    user-select: none;
   }
 }
 </style>

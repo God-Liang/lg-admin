@@ -1,0 +1,7 @@
+[defaults]
+url=https://sentry.io/
+org=yizhijia
+project=vue
+
+[auth]
+token=156acd8cc16d4686bcf43ce704c63d4f5129ef98fbaa47538985f18816ff85be

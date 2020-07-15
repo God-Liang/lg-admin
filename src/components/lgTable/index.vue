@@ -1,64 +1,28 @@
 <template lang="pug">
   .lg-tabel-container
-    el-table(:key="tableKey"
-      ref="table"
-      v-loading="listLoading"
-      :data="list"
-      element-loading-text="加载中..."
-      fixed
-      fit
-      border
-      highlight-current-row
-      style="width: 100%"
-      align="center"
-      @select="getRow"
-      @select-all="getRow"
-      @row-click="getRowClick")
-      el-table-column(v-if="hasSelection" :label="columnsLabel" align="center" :type="columnsType" :index="indexMethod" width="55")
-      el-table-column(v-for="thead in lgThead" :key="thead.label" :width="thead.width || ''" class-name="status-col" :prop="thead.label" :label="thead.text")
+    a-table(:data-source="list" :loading="listLoading" :pagination="false" bordered :rowKey="rowKey" :scroll="{ x: scrollX }")
+      a-table-column(v-for="(thead, index) in lgThead" :width="thead.width" :key="thead.label" :title="thead.text" align="center")
         template(slot-scope="scope")
-          lgSolt(v-if="thead.render" :render="thead.render" :row="scope.row" :column="thead")
-          div(v-else) {{ scope.row[thead.label] }}
-      el-table-column(v-if="isOperation && lgButtons.operation" label="操作" :width="lgButtons.width ? lgButtons.width : 100 * lgButtons.operation[0].length"
-        align="center"
-        class-name="small-padding fixed-width"
-        fixed="right")
+          lgSolt(v-if="thead.render" :render="thead.render" :row="scope" :column="thead")
+          div(v-else) {{ scope[thead.label] }}
+      a-table-column(v-if="isOperation" :width="lgButtons.width" key="action" fixed="right"  title="操作" align="center")
         template(slot-scope="scope")
-          template(v-for="button in (lgButtons.statusName ? lgButtons.operation[scope.row[lgButtons.statusName]] : lgButtons.operation[0])")
-            el-button.long(
-              v-if="button.statusName && handleState(scope.row[button.statusName], button.statusValue)"
-              :key="button.name"
-              v-permission="button.permission"
-              v-waves=""
-              size="small"
-              :type="button.type"
-              @click="fun(scope.row, button.id)")
-              span(:style="button.color ? 'color:' + button.color : ''") {{ button.text }}
-            el-button.long(
-              v-if="!button.statusName"
-              :key="button.name"
-              v-permission="button.permission"
-              v-waves=""
-              size="small"
-              :type="button.type"
-              @click="fun(scope.row, button.id)")
-              span(:style="button.color ? 'color:' + button.color : ''") {{ button.text }}
+          template(v-if="lgButtons.noOperation && lgButtons.noOperation.length > 0 && operationFilter(lgButtons.noOperation, scope)")
+            .noOperation 不可操作
+          template(v-else)
+            a-button.long(v-for="button in (lgButtons.statusName ? lgButtons.operation[scope[lgButtons.statusName]] : lgButtons.operation)" v-action="button.permission" :type="button.type" :key="button.name" @click="fun(scope, button.id)") {{ button.text }}
     .pagination-container
-      el-pagination(ref="pagination"
-        background
-        :current-page="listQuery.current"
-        :page-sizes="[10,20,50,100]"
-        :page-size="listQuery.pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="totalList"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange")
+      pagination(v-model="listQuery.page" :page-size-options="pageSizeOptions" :total="totalList" :show-total="showTotal" show-size-changer show-quick-jumper :page-size="listQuery.limit" @change="currentChange" @showSizeChange="onShowSizeChange")
 </template>
 <script>
+import { pagination } from 'ant-design-vue'
 const lgSolt = {
   functional: true,
   props: {
-    row: Object,
+    row: {
+      type: Object,
+      default: ''
+    },
     render: Function,
     column: {
       type: Object,
@@ -67,23 +31,27 @@ const lgSolt = {
   },
   render: (h, data) => {
     const element = data.props.render(h, data.props.row)
-    if (typeof (element) === 'object' && element !== null) {
+    if (typeof element === 'object' && element !== null) {
       return element
     } else {
       return h('span', element)
     }
   }
 }
-import permission from '@/directive/permission'
-import waves from '@/directive/waves' // 水波纹指令
 export default {
   name: 'LgTable',
-  directives: {
-    waves,
-    permission
-  },
-  components: { lgSolt },
+  components: { lgSolt, pagination },
   props: {
+    // 滚动宽度
+    scrollX: {
+      type: [Number, Boolean],
+      default: 1300
+    },
+    // rowKey
+    rowKey: {
+      type: String,
+      default: 'id'
+    },
     // 表格数据
     list: {
       type: Array,
@@ -103,53 +71,38 @@ export default {
         return []
       }
     },
-    // 状态名称
-    statusName: {
-      type: String,
-      default: function() {
-        return 'status'
-      }
-    },
-    // 表格第一列
-    hasSelection: {
-      type: Boolean,
-      default: true
-    },
-    // 第一列表格类型 |默认值：selection、index、expand
-    columnsType: {
-      type: String,
-      default: 'selection'
-    },
-    // 如果columnsType为index时，第一列表头的名称
-    columnsLabel: {
-      type: String,
-      default: '#'
-    },
     // 判断是否需要操作按钮
     isOperation: {
       type: Boolean,
-      default: true
+      default: false
     },
     // 操作按钮
+    // statusName 状态名
+    // operation: [] or {0: [], 1: []} 按钮配置
     lgButtons: {
       type: Object,
       default: function() {
         return {
-          status: true, // 是否区分操作状态 true：根据当前列的数据状态值使用operation[状态值]; false：使用operation[0]
+          statusName: 'status', // 当存在statusName：根据当前列的数据状态值使用operation[状态值]; false：使用operation
           width: 100, // 表格操作列的宽度
-          operation: { // 操作按钮配置
-            0: [{
-              name: 'enable',
-              text: '启用',
-              id: 0,
-              type: 'primary'
-            }],
-            1: [{
-              name: 'disable',
-              text: '禁用',
-              id: 1,
-              type: 'primary'
-            }]
+          operation: {
+            // 操作按钮配置
+            0: [
+              {
+                name: 'enable',
+                text: '启用',
+                id: 0,
+                type: 'link'
+              }
+            ],
+            1: [
+              {
+                name: 'disable',
+                text: '禁用',
+                id: 1,
+                type: 'link'
+              }
+            ]
           }
         }
       }
@@ -157,11 +110,12 @@ export default {
   },
   data() {
     return {
-      tableKey: 0,
       listQuery: {
-        current: 1,
-        pageSize: 10
-      }
+        page: 1,
+        limit: 10
+      },
+      pageSizeOptions: ['10', '20', '30', '40', '50'],
+      showTotal: (total, range) => `共${total}条`
     }
   },
   computed: {
@@ -175,13 +129,7 @@ export default {
     this.$emit('initListQuery', this.listQuery)
   },
   methods: {
-    getRow(s, r) {
-      this.$emit('getSelectArr', s, r)
-    },
-    getRowClick(r, e, c) {
-      this.$emit('getRowClick', r, e, c)
-    },
-    // 按钮事件
+    // 操作按钮
     fun(row, buttonId) {
       this.$emit('operationEvent' + buttonId, row)
     },
@@ -189,66 +137,82 @@ export default {
     getList() {
       this.$emit('getListByPagination', this.listQuery)
     },
-    handleFilter() {
-      // 手动触发 @current-page事件
-      this.$refs.pagination.lastEmittedPage = 1
-      // 通过筛选条件每次请求默认第一页
-      this.listQuery.current = 1
+    // 分页过滤
+    currentChange(page, limit) {
+      this.listQuery.page = page
+      this.listQuery.limit = limit
       this.getList()
     },
-    // 修改每页条数
-    handleSizeChange(val) {
-      this.listQuery.pageSize = val
+    // 分页过滤
+    onShowSizeChange(page, limit) {
+      this.listQuery.limit = limit
+      this.listQuery.page = page
       this.getList()
     },
-    // 页码改变时触发
-    handleCurrentChange(val) {
-      this.listQuery.current = val
-      this.getList()
-    },
-    // 索引
-    indexMethod(index) {
-      return this.listQuery.pageSize * (this.listQuery.current - 1) + index + 1
-    },
-    // 处理更多状态
-    handleState(curStatus, status) {
-      if (typeof (status) === 'object' && status !== null) {
-        return status.indexOf(curStatus) !== -1
-      } else {
-        return curStatus === status
-      }
+    // 操作处理
+    operationFilter(list, row) {
+      let flag = false
+      list.map(e => {
+        if (row[e.label] === e.value) {
+          flag = true
+        }
+      })
+      return flag
     }
   }
 }
 </script>
-<style lang="scss">
-.lg-tabel-container {
-  .el-table th.is-leaf {
-    color: #666;
-  }
-  .el-table tr:nth-child(even) {
-    background-color: #F9F9F9;
-  }
-  .long {
-    &:last-child {
-      &::after {
-        display: none;
-      }
-    }
+
+<style lang="less" scoped>
+// 表格
+/deep/ .ant-table-thead {
+  background-color: #f3f3f3;
+}
+/deep/ .ant-table-tbody tr:nth-child(2n) {
+  background: rgba(250, 251, 252, 1);
+}
+/deep/ .ant-table-tbody tr:nth-child(2n-1) {
+  background: rgba(255, 255, 255, 1);
+}
+/deep/ .ant-table-thead > tr > th,
+/deep/ .ant-table-tbody > tr > td {
+  padding: 6px 10px;
+}
+// 分页
+.pagination-container {
+  margin-top: 30px;
+  text-align: right;
+}
+.long {
+  padding: 0;
+  height: 20px;
+  &:last-child {
     &::after {
-      content: "";
-      display: inline-block;
-      height: 10px;
-      width: 1px;
-      background-color: #03a9ac;
-      margin-left: 5px;
-      margin-bottom: 2px;
-      vertical-align: middle;
+      display: none;
     }
   }
-  .long+.el-button {
-    margin-left: 5px;
+  &::after {
+    content: '';
+    display: inline-block;
+    height: 10px;
+    width: 1px;
+    background-color: #0076ff;
+    margin-left: 6px;
+    margin-bottom: 2px;
+    vertical-align: middle;
   }
 }
+.long + .long {
+  margin-left: 8px;
+}
+.long,
+.long:hover,
+.long:focus,
+.long:active {
+  border: 0;
+}
+.noOperation {
+  color: #888;
+  font-size: 14px;
+}
 </style>
-
