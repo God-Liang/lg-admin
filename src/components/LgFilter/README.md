@@ -3,8 +3,8 @@
 ## 封装说明
 
 - 采用自定义指令统一处理按钮权限
-- 更多操作动画效果（待完成）
-- `options[Array,Object]`，数组时：索引为 key; 对象时：属性为 key
+- 更多操作动画效果
+- 导出 excel，数据格式`options[Array,Object]`，数组时：索引为 key; 对象时：属性为 key
 
 ## 实例
 
@@ -17,12 +17,19 @@
         searchShow
         resetShow
         exportShow
+        advancedShow
         :export-data="exportData"
         @create="onCreate"
         @search="onSearch"
         @reset="onReset"
       >
-        <a-input v-model="filters.name" class="filter-item w200" placeholder="名称" />
+        <a-input v-model="filters.name" placeholder="名称" />
+        <template slot="advanced">
+          <a-input v-model="filters.phone" placeholder="手机号" />
+        </template>
+        <template slot="operation">
+          <a-button type="primary">更多操作</a-button>
+        </template>
       </LgFilter>
     </div>
   </div>
@@ -37,7 +44,8 @@ export default {
     return {
       // 过滤条件
       filters: {
-        name: ''
+        name: '',
+        phone: ''
       },
       // 导出数据
       exportData: {
@@ -92,8 +100,28 @@ export default {
 
 ## 内置属性
 
-- 请直接查看文件`/src/components/lgFilter/index.vue`的`props`
+| 属性             | 说明         | 类型    | 默认值 |
+| ---------------- | ------------ | ------- | ------ |
+| createShow       | 是否显示新增 | boolean | true   |
+| createPermission | 新增权限     | string  | ""     |
+| searchShow       | 是否显示搜索 | boolean | true   |
+| searchPermission | 搜索权限     | string  | ""     |
+| resetShow        | 是否显示重置 | boolean | false  |
+| exportShow       | 是否显示导出 | boolean | false  |
+| exportPermission | 导出权限     | string  | ""     |
+| exportData       | 导出数据     | object  | {}     |
+| advancedShow     | 是否高级操作 | boolean | false  |
+
+- exportData
+- | 属性  | 说明       | 类型   | 默认值     |
+  | ----- | ---------- | ------ | ---------- |
+  | thead | 导出头部   | array  | []         |
+  | tbody | 导出数据   | array  | []         |
+  | name  | 导出文件名 | string | 当前时间戳 |
 
 ## 注意事项
 
-- 过滤条件都要加上 class 样式`filter-item`
+- 过滤属性通过 slot="advanced"区分 更多操作属性
+  - 如：`<template slot="advanced"><a-input v-model="filters.phone" placeholder="手机号" /></template>`
+- 按钮操作通过 slot="operation"区分
+  - 如：`<template slot="operation"><a-button type="primary">更多操作</a-button></template>`

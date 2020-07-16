@@ -12,7 +12,7 @@
       .content-container
         //- 过滤
         lg-filter(@create="handleCreate" @search="handleFilter" @reset="handleFilter(true)")
-          a-input.filter-item.w200(v-model="filters.keyword" placeholder="请输入过滤条件")
+          a-input(v-model="filters.keyword" placeholder="请输入过滤条件")
         //- 表格
         lg-table(:list="list"
           :totalList="total"

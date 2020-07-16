@@ -1,6 +1,6 @@
 <template lang="pug">
   .lg-tabel-container
-    a-table(:data-source="list" :loading="listLoading" :pagination="false" bordered :rowKey="rowKey" :scroll="{ x: scrollX }")
+    a-table(:data-source="list" :loading="listLoading" :pagination="false" bordered :rowKey="rowKey" :scroll="{ x: scrollX }" :rowSelection="rowSelection")
       a-table-column(v-for="(thead, index) in lgThead" :width="thead.width" :key="thead.label" :title="thead.text" align="center")
         template(slot-scope="scope")
           lgSolt(v-if="thead.render" :render="thead.render" :row="scope" :column="thead")
@@ -63,6 +63,13 @@ export default {
     totalList: {
       type: Number,
       default: 0
+    },
+    // 是否可选择
+    rowSelection: {
+      type: Object,
+      default: function() {
+        return null
+      }
     },
     // 表头数据
     lgThead: {

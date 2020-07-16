@@ -1,15 +1,36 @@
 <template lang="pug">
   .lg-filter-container
-    slot
-    a-button.filter-item(v-if="searchShow" v-action="searchPermission" type="primary" @click="onSearch") 查询
-    a-button.filter-item(v-if="resetShow" @click="onReset") 重置
-    a-button.filter-item(v-if="createShow" v-action="createPermission" type="primary" @click="onCreate") 新增
-    a-button.filter-item(v-if="exportShow" v-action="exportPermission" :loading="downloading" type="primary" @click="onExport") 导出
+    a-row(:gutter="20")
+      filterSlot(type="default")
+      filterSlot(v-if="advanced" type="advanced")
+      a-col(:xl="6" :md="8" :xs="24")
+        a-button(v-if="searchShow" v-action="searchPermission" type="primary" @click="onSearch") 查询
+        a-button(v-if="resetShow" @click="onReset") 重置
+        span.advanced(v-if="advancedShow" @click="toggleAdvanced") {{ advanced ? '收起' : '展开' }}
+          a-icon(:type="advanced ? 'up' : 'down'")
+    a-row(:gutter="20")
+      a-col
+        a-button(v-if="createShow" v-action="createPermission" type="primary" @click="onCreate") 新增
+        a-button(v-if="exportShow" v-action="exportPermission" :loading="downloading" type="primary" @click="onExport") 导出
+        slot(name="operation")
 </template>
 
 <script>
+const filterSlot = {
+  functional: true,
+  props: {
+    type: {
+      type: String,
+      default: 'default'
+    }
+  },
+  render: (h, data) => {
+    return data.parent.$slots[data.props.type] && data.parent.renderContent(data.parent.$slots[data.props.type])
+  }
+}
 export default {
-  name: 'LgFilter',
+  name: 'LgFilters',
+  components: { filterSlot },
   props: {
     // 是否显示新增
     createShow: {
@@ -56,11 +77,17 @@ export default {
           name: ''
         }
       }
+    },
+    // 高级操作
+    advancedShow: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
-      downloading: false
+      downloading: false,
+      advanced: false
     }
   },
   methods: {
@@ -123,19 +150,40 @@ export default {
           }
         })
       )
+    },
+    // 高级
+    toggleAdvanced() {
+      this.advanced = !this.advanced
+    },
+    renderItem(vnode) {
+      return (
+        <a-col xl={6} md={8} xs={24}>
+          {vnode}
+        </a-col>
+      )
+    },
+    renderContent(vlist) {
+      return vlist.map(vnode => {
+        return this.renderItem(vnode)
+      })
     }
   }
 }
 </script>
 <style lang="less" scoped>
+@import '~ant-design-vue/es/style/themes/default.less';
 .lg-filter-container {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  flex-wrap: wrap;
-  .filter-item {
-    margin-right: 20px;
+  /deep/ .ant-col {
     margin-bottom: 20px;
+    .ant-btn + .ant-btn {
+      margin-left: 20px;
+    }
+  }
+  .advanced {
+    margin-left: 14px;
+    font-size: 13px;
+    color: @primary-color;
+    cursor: pointer;
   }
 }
 </style>
